@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slither.io</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a2e;
+            overflow: hidden;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            cursor: none;
+        }
+        canvas#gameCanvas { display: block; }
+
+        /* ---- Start Screen ---- */
+        #startScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: radial-gradient(ellipse at center, #1a1a4e 0%, #0a0a2e 70%);
+            z-index: 100;
+        }
+        #startScreen h1 {
+            font-size: 72px; color: #fff;
+            text-shadow: 0 0 20px #7c4dff, 0 0 40px #7c4dff, 0 0 80px #7c4dff;
+            margin-bottom: 8px; letter-spacing: 6px;
+        }
+        .subtitle { color: #aaa; font-size: 15px; margin-bottom: 40px; }
+        #nameInput {
+            padding: 12px 24px; font-size: 20px; border: 2px solid #7c4dff;
+            border-radius: 25px; background: rgba(255,255,255,0.1); color: #fff;
+            text-align: center; outline: none; width: 280px; margin-bottom: 20px;
+        }
+        #nameInput::placeholder { color: rgba(255,255,255,0.4); }
+        #nameInput:focus { border-color: #b388ff; box-shadow: 0 0 15px rgba(124,77,255,0.5); }
+        #playBtn {
+            padding: 14px 60px; font-size: 22px; font-weight: bold;
+            background: linear-gradient(135deg, #7c4dff, #b388ff);
+            color: #fff; border: none; border-radius: 30px; cursor: pointer;
+            transition: all 0.3s; letter-spacing: 2px;
+        }
+        #playBtn:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(124,77,255,0.6); }
+        .controls-info {
+            margin-top: 30px; color: #777; font-size: 13px; text-align: center; line-height: 2;
+        }
+        #onlineCount {
+            margin-top: 12px; color: #7c4dff; font-size: 14px;
+        }
+
+        /* ---- HUD ---- */
+        #hud {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10; display: none;
+        }
+        #score {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 22px; font-weight: bold;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+        }
+        #leaderboard {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(0,0,0,0.55); padding: 12px 16px;
+            border-radius: 10px; color: #fff; min-width: 180px;
+            backdrop-filter: blur(4px);
+        }
+        #leaderboard h3 {
+            text-align: center; margin-bottom: 8px; font-size: 13px;
+            color: #b388ff; letter-spacing: 1px;
+        }
+        .lb-entry {
+            display: flex; justify-content: space-between;
+            padding: 2px 0; font-size: 12px; color: #ccc;
+        }
+        .lb-entry.me { color: #7c4dff; font-weight: bold; }
+        #minimap { position: absolute; bottom: 20px; right: 20px; }
+        #ping {
+            position: absolute; bottom: 24px; left: 20px;
+            color: rgba(255,255,255,0.4); font-size: 11px;
+        }
+
+        /* ---- Game Over ---- */
+        #gameOver {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.7); z-index: 50;
+            backdrop-filter: blur(3px);
+        }
+        #gameOver h2 { color: #ff6b6b; font-size: 48px; margin-bottom: 10px; }
+        .final-score { color: #fff; font-size: 22px; margin-bottom: 30px; }
+        #retryBtn {
+            padding: 12px 50px; font-size: 20px; font-weight: bold;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: #fff; border: none; border-radius: 25px; cursor: pointer;
+            transition: all 0.3s;
+        }
+        #retryBtn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,107,107,0.5); }
+
+        /* ---- Ad Slots ---- */
+        .ad-slot {
+            background: rgba(255,255,255,0.05);
+            border: 1px dashed rgba(255,255,255,0.15);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.2); font-size: 11px;
+            overflow: hidden;
+        }
+        /* Start screen: banner below controls */
+        #ad-start {
+            width: 728px; max-width: 90vw; height: 90px;
+            margin-top: 30px;
+        }
+        /* Game over: banner between score and retry */
+        #ad-gameover {
+            width: 336px; height: 280px;
+            margin-bottom: 24px;
+        }
+        /* In-game: small banner bottom-left */
+        #ad-ingame {
+            position: absolute; bottom: 20px; left: 20px;
+            width: 320px; height: 50px;
+            pointer-events: auto;
+        }
+    </style>
+
+    <!-- TODO: AdSense를 승인 받으면 아래 주석을 해제하고 ca-pub-XXXXXXXX 부분을 본인 ID로 교체 -->
+    <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="startScreen">
+        <h1>SLITHER</h1>
+        <div class="subtitle">Grow. Survive. Dominate.</div>
+        <input type="text" id="nameInput" placeholder="Enter your name" maxlength="15">
+        <button id="playBtn">PLAY</button>
+        <div class="controls-info">
+            Mouse &mdash; Move direction<br>
+            Left Click / Space &mdash; Boost
+        </div>
+        <div id="onlineCount"></div>
+
+        <!-- Ad: Start Screen Banner (728x90) -->
+        <div id="ad-start" class="ad-slot">
+            <!-- <ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="XXXXXXXXXX"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
+            AD SPACE 728x90
+        </div>
+    </div>
+
+    <div id="hud">
+        <div id="score">Score: 0</div>
+        <div id="leaderboard">
+            <h3>LEADERBOARD</h3>
+            <div id="lbList"></div>
+        </div>
+        <canvas id="minimap" width="160" height="160"></canvas>
+        <div id="ping"></div>
+
+        <!-- Ad: In-Game Banner (320x50) -->
+        <div id="ad-ingame" class="ad-slot">
+            <!-- <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="XXXXXXXXXX"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
+            AD 320x50
+        </div>
+    </div>
+
+    <div id="gameOver">
+        <h2>GAME OVER</h2>
+        <div class="final-score" id="finalScore"></div>
+
+        <!-- Ad: Game Over (336x280) -->
+        <div id="ad-gameover" class="ad-slot">
+            <!-- <ins class="adsbygoogle" style="display:inline-block;width:336px;height:280px" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="XXXXXXXXXX"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
+            AD 336x280
+        </div>
+
+        <button id="retryBtn">PLAY AGAIN</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+services:
+  slither:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - UV_THREADPOOL_SIZE=16
+      - NODE_OPTIONS=--max-old-space-size=6144
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '8.0'
+          memory: 8G
+        reservations:
+          cpus: '4.0'
+          memory: 2G
