@@ -381,6 +381,11 @@ function broadcastState() {
         .slice(0, 10)
         .map(s => [s.id, s.name, s.score, s.paletteIdx]);
 
+    // Minimap data — all snakes: [x, y, paletteIdx, isPlayer]
+    const mm = allAlive.map(s => [
+        (s.x + 0.5) | 0, (s.y + 0.5) | 0, s.paletteIdx, s.isAI ? 0 : 1
+    ]);
+
     for (const [, client] of clients) {
         const snake = snakes.get(client.snakeId);
         if (!snake) continue;
@@ -425,6 +430,7 @@ function broadcastState() {
             f: nf,
             y: client.snakeId,
             lb: lb,
+            mm: mm,
         }));
     }
 }

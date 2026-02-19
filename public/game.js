@@ -26,6 +26,7 @@ let worldSize = 6000;
 let palettes = [];
 let stateSnakes = [];
 let stateFoods  = [];
+let minimapData = []; // all snakes [x, y, paletteIdx, isPlayer]
 let camera = { x: 3000, y: 3000, zoom: 1 };
 let mouse = { x: 0, y: 0 };
 let isBoosting = false;
@@ -67,6 +68,7 @@ function connect() {
             });
             // Decode compact food array
             stateFoods = msg.f; // [[x,y,color,radius], ...]
+            if (msg.mm) minimapData = msg.mm; // [[x,y,pal,isPlayer], ...]
 
             // Camera
             const me = stateSnakes.find(s => s.isMe);
@@ -381,19 +383,37 @@ function drawMinimap() {
     const scale = (mw - 10) / worldSize;
     const pad = 5;
 
-    for (let i = 0; i < stateSnakes.length; i++) {
-        const s = stateSnakes[i];
-        if (s.segs.length < 2) continue;
-        if (s.isMe) {
+    // Draw ALL snakes from global minimap data
+    for (let i = 0; i < minimapData.length; i++) {
+        const m = minimapData[i]; // [x, y, paletteIdx, isPlayer]
+        const mx = m[0] * scale + pad;
+        const my = m[1] * scale + pad;
+        if (m[1] && m[3]) {
+            // Real player — bigger dot
             mmCtx.fillStyle = '#7c4dff';
             mmCtx.beginPath();
-            mmCtx.arc(s.segs[0] * scale + pad, s.segs[1] * scale + pad, 4, 0, Math.PI * 2);
+            mmCtx.arc(mx, my, 3, 0, Math.PI * 2);
             mmCtx.fill();
         } else {
-            const p = palettes[s.pal] || ['#fff'];
+            // AI
+            const p = palettes[m[2]] || ['#fff'];
             mmCtx.fillStyle = p[0];
             mmCtx.beginPath();
-            mmCtx.arc(s.segs[0] * scale + pad, s.segs[1] * scale + pad, 2, 0, Math.PI * 2);
+            mmCtx.arc(mx, my, 1.5, 0, Math.PI * 2);
+            mmCtx.fill();
+        }
+    }
+    // Highlight myself on top
+    if (myId) {
+        const me = stateSnakes.find(s => s.isMe);
+        if (me && me.segs.length >= 2) {
+            mmCtx.fillStyle = '#fff';
+            mmCtx.beginPath();
+            mmCtx.arc(me.segs[0] * scale + pad, me.segs[1] * scale + pad, 4, 0, Math.PI * 2);
+            mmCtx.fill();
+            mmCtx.fillStyle = '#7c4dff';
+            mmCtx.beginPath();
+            mmCtx.arc(me.segs[0] * scale + pad, me.segs[1] * scale + pad, 3, 0, Math.PI * 2);
             mmCtx.fill();
         }
     }
